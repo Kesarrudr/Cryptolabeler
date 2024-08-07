@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id      String   @id @default(uuid())
+  address String
+  Task    Task[]
+  Payout  Payout[]
+}
+
+model Task {
+  id          String        @id @default(uuid())
+  title       String?
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String
+  signature   String
+  amount      Int
+  done        Boolean       @default(false)
+  Options     Options[]
+  Submissions Submissions[]
+}
+
+model Options {
+  id          String        @id @default(uuid())
+  image_url   String
+  tasks       Task          @relation(fields: [tasksId], references: [id])
+  tasksId     String
+  Submissions Submissions[]
+}
+
+model Worker {
+  id             String        @id @default(uuid())
+  address        String
+  Submissions    Submissions[]
+  pending_amount Int
+  locket_amount  Int
+  Balance        Balance?
+  Payout         Payout[]
+}
+
+model Balance {
+  id       String @id @default(uuid())
+  amount   String @default("0")
+  workerId String @unique
+  worker   Worker @relation(fields: [workerId], references: [id])
+}
+
+model Submissions {
+  id        String  @id @default(uuid())
+  workerId  String
+  worker    Worker  @relation(fields: [workerId], references: [id])
+  option_id String
+  option    Options @relation(fields: [option_id], references: [id])
+  tasksId   String
+  task      Task    @relation(fields: [tasksId], references: [id])
+  amount    Int
+
+  @@unique([workerId, tasksId])
+}
+
+model Payout {
+  id        String    @id @default(uuid())
+  workerId  String
+  worker    Worker    @relation(fields: [workerId], references: [id])
+  amount    Int
+  signature String
+  status    TxnStatus
+  User      User?     @relation(fields: [userId], references: [id])
+  userId    String?
+}
+
+enum TxnStatus {
+  Processing
+  Success
+  Failure
+}
