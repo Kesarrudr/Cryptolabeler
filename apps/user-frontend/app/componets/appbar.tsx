@@ -12,8 +12,6 @@ import { Backed_URL } from "../uitls";
 export default function Appbar() {
   const { publicKey, signMessage } = useWallet();
 
-  // if (!publicKey) return;
-
   async function signandSend() {
     const message = new TextEncoder().encode(
       "Sign in with the mechanical turks",
