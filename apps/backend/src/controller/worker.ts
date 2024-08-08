@@ -1,18 +1,34 @@
+import nacl from "tweetnacl";
 import { TOTAL_DECEMIALS, Worker_JWT_SECTET } from "..";
 import { prisma } from "../prisma.client/client";
 import { SubmitTaskSchema } from "../types/type";
 import asyncHandler from "../utils/async.handler";
 import jwt from "jsonwebtoken";
+import { PublicKey } from "@solana/web3.js";
 
 const TOTAL_SELECTION = 100;
 
 const WorkerSignin = asyncHandler(async (req, res) => {
   try {
-    const address = "this_is_my_second_address";
+    const { signature, publicKey } = req.body;
+    const UT8Signature = new Uint8Array(signature.data);
+    const message = new TextEncoder().encode(
+      "Sign in with the mechanical turks",
+    );
 
+    const result = nacl.sign.detached.verify(
+      message,
+      UT8Signature,
+      new PublicKey(publicKey).toBytes(),
+    );
+    if (!result) {
+      res.status(400).json({
+        message: "signature can't be verified",
+      });
+    }
     const existingUser = await prisma.worker.findFirst({
       where: {
-        address: address,
+        address: publicKey,
       },
     });
 
@@ -30,7 +46,7 @@ const WorkerSignin = asyncHandler(async (req, res) => {
     } else {
       const newUser = await prisma.worker.create({
         data: {
-          address: address,
+          address: publicKey,
           pending_amount: 0 * TOTAL_DECEMIALS,
           locket_amount: 0 * TOTAL_DECEMIALS,
         },
