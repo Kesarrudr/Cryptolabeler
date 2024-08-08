@@ -8,7 +8,7 @@ const TOTAL_SELECTION = 100;
 
 const WorkerSignin = asyncHandler(async (req, res) => {
   try {
-    const address = "jfaklsjfhvffnv;aofqehgn";
+    const address = "this_is_my_second_address";
 
     const existingUser = await prisma.worker.findFirst({
       where: {
@@ -68,10 +68,10 @@ const NextTask = asyncHandler(async (req, res) => {
         },
       },
       select: {
-        Options: true,
         title: true,
         id: true,
         amount: true,
+        Options: true,
       },
     });
 
@@ -128,7 +128,7 @@ const SubmitTask = asyncHandler(async (req, res) => {
     }
 
     if (parseData.success) {
-      const amount = (Number(task?.amount) / TOTAL_SELECTION) * TOTAL_DECEMIALS;
+      const amount = Number(task?.amount) / TOTAL_SELECTION;
 
       const submission = await prisma.$transaction(async (tx) => {
         const submission = await tx.submissions.create({
@@ -168,10 +168,11 @@ const SubmitTask = asyncHandler(async (req, res) => {
         },
       });
       res.status(200).json({
-        "next task": newTask,
+        nextTask: newTask,
       });
     }
   } catch (error) {
+    console.log("error", error);
     res.status(500).json({
       message: "Something is wrong with the SubmitTask Controller",
     });

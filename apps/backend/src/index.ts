@@ -4,7 +4,7 @@ import Version1 from "./version/v1";
 
 export const JWT_SECRET = "howstrongheis";
 export const Worker_JWT_SECTET = "howgoodisthisandstrong";
-export const TOTAL_DECEMIALS = 1000_000_000;
+export const TOTAL_DECEMIALS = 1000_000;
 
 const app = express();
 

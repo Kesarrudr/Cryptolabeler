@@ -5,14 +5,30 @@ import { JWT_SECRET, TOTAL_DECEMIALS } from "..";
 import getSignedFileUrl from "../utils/presignedurl";
 import { CreateTaskSchema } from "../types/type";
 import { Record } from "@prisma/client/runtime/library";
+import nacl from "tweetnacl";
+import { PublicKey } from "@solana/web3.js";
 
 const UserSignin = asyncHandler(async (req, res) => {
   try {
-    const address = "0xF0f6f88ff902Df14ee1A633957C4782E394666f5";
+    const { signature, publicKey } = req.body;
+    const signedSignature = "Sign in with the mechanical turks";
+    const UT8Signature = new Uint8Array(signature.data);
+    const message = new TextEncoder().encode(signedSignature);
+
+    const result = nacl.sign.detached.verify(
+      message,
+      UT8Signature,
+      new PublicKey(publicKey).toBytes(),
+    );
+    if (!result) {
+      res.status(400).json({
+        message: "signature can't be verified",
+      });
+    }
 
     const existingUser = await prisma.user.findFirst({
       where: {
-        address: address,
+        address: publicKey,
       },
     });
 
@@ -30,7 +46,7 @@ const UserSignin = asyncHandler(async (req, res) => {
     } else {
       const newUser = await prisma.user.create({
         data: {
-          address: address,
+          address: publicKey,
         },
       });
       const token = jwt.sign(
@@ -45,6 +61,7 @@ const UserSignin = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: "Something is wrong with UserSignin Controller",
     });
@@ -117,7 +134,6 @@ const TaskDetails = asyncHandler(async (req, res) => {
     //TODO:
     //@ts-ignore
     const userId = req.userId;
-
     const task = await prisma.task.findFirst({
       where: {
         userId: userId,
@@ -168,6 +184,7 @@ const TaskDetails = asyncHandler(async (req, res) => {
 
     res.status(200).json({
       result,
+      taskDetails: task,
     });
   } catch (error) {
     res.status(500).json({
