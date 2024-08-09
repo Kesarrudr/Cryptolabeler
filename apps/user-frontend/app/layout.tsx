@@ -13,9 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <div className="text-black font-extrabold ">
-        IN DEVELOPMENT don't trasfer real Crypto
-      </div>
+      <div className="text-black">IN DEVELOPMENT don't trasfer real Crypto</div>
       <body>{children}</body>
     </html>
   );
