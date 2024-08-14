@@ -65,6 +65,7 @@ export const Upload = () => {
   return (
     <div className="flex justify-center">
       <div className="max-w-screen-lg w-full">
+        <div> website in development don't transfer acutul crypto</div>
         <div className="text-2xl text-left pt-20 w-full pl-4">
           Create a task
         </div>
