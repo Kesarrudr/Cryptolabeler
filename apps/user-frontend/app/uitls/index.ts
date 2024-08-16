@@ -1,2 +1,2 @@
-export const Backed_URL = "http://localhost:6969";
-export const CLOUDFRONT_URL = "https://d35gzb7uh0p72.cloudfront.net";
+export const Backed_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+export const CLOUDFRONT_URL = process.env.NEXT_PUBLIC_CDN_URL;

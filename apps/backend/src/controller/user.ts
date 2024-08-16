@@ -1,13 +1,17 @@
 import { prisma } from "../prisma.client/client";
 import asyncHandler from "../utils/async.handler";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET, TOTAL_DECEMIALS } from "..";
 import getSignedFileUrl from "../utils/presignedurl";
 import { CreateTaskSchema } from "../types/type";
 import { Record } from "@prisma/client/runtime/library";
 import nacl from "tweetnacl";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Connection } from "@solana/web3.js";
 
+const connection = new Connection(
+  process.env.RPC_URL ?? "https://api.devnet.solana.com",
+);
+
+const lamport = 10000_0000;
 const UserSignin = asyncHandler(async (req, res) => {
   try {
     const { signature, publicKey } = req.body;
@@ -37,7 +41,7 @@ const UserSignin = asyncHandler(async (req, res) => {
         {
           userId: existingUser.id,
         },
-        JWT_SECRET,
+        process.env.JWT_SECRET as string,
       );
 
       res.status(200).json({
@@ -53,7 +57,7 @@ const UserSignin = asyncHandler(async (req, res) => {
         {
           userId: newUser.id,
         },
-        JWT_SECRET,
+        process.env.JWT_SECRET as string,
       );
 
       res.status(200).json({
@@ -95,13 +99,53 @@ const CreateTask = asyncHandler(async (req, res) => {
         message: "You have send the wrong input fields",
       });
     }
+    const user = await prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
+    if (parseData.data?.signature) {
+      const transaction = await connection.getTransaction(
+        parseData.data.signature,
+        {
+          maxSupportedTransactionVersion: 1,
+        },
+      );
+      if (
+        (transaction?.meta?.postBalances[1] ?? 0) -
+          (transaction?.meta?.preBalances[1] ?? 0) !==
+        lamport
+      ) {
+        return res.status(411).json({
+          message: "Transaction signature/amount incorrect",
+        });
+      }
+      if (
+        transaction?.transaction.message.getAccountKeys().get(1)?.toString() !==
+        process.env.PARENT_WALLET_ADDRESS
+      ) {
+        return res.status(411).json({
+          message: " and to send Transaction sent to wrong address",
+        });
+      }
+
+      if (
+        transaction?.transaction.message.getAccountKeys().get(0)?.toString() !==
+        user?.address
+      ) {
+        return res.status(411).json({
+          message: "Transaction sent to wrong address",
+        });
+      }
+    }
+
     //parse the string to get the amount and to make sure that the amount is paid
     if (parseData.success) {
       const response = await prisma.$transaction(async (tx) => {
         const task = await tx.task.create({
           data: {
             title: parseData.data.title ?? "This is my title",
-            amount: 1 * TOTAL_DECEMIALS,
+            amount: 1 * lamport,
             signature: parseData.data.signature!,
             userId: userId,
           },

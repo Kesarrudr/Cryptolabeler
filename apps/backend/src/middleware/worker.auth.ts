@@ -1,11 +1,10 @@
 import jwt from "jsonwebtoken";
 import asyncHandler from "../utils/async.handler";
-import { Worker_JWT_SECTET } from "..";
 
 const WorkerAuthMiddleware = asyncHandler(async (req, res, next) => {
   try {
     const authHeader = req.header("authorization") ?? "";
-    const decoded = jwt.verify(authHeader, Worker_JWT_SECTET);
+    const decoded = jwt.verify(authHeader, process.env.Worker_JWT_SECTET!);
     //TODO:
     //@ts-ignore
     if (decoded.workerId) {

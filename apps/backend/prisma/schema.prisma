@@ -44,8 +44,8 @@ model Worker {
   id             String        @id @default(uuid())
   address        String
   Submissions    Submissions[]
-  pending_amount Int
-  locket_amount  Int
+  pending_amount Int           @default(0)
+  locket_amount  Int           @default(0)
   Balance        Balance?
   Payout         Payout[]
 }

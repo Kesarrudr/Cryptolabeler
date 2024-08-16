@@ -1,11 +1,10 @@
 import jwt from "jsonwebtoken";
 import asyncHandler from "../utils/async.handler";
-import { JWT_SECRET } from "..";
 
 const AuthMiddleware = asyncHandler(async (req, res, next) => {
   try {
     const authHeader = req.header("authorization") ?? "";
-    const decoded = jwt.verify(authHeader, JWT_SECRET);
+    const decoded = jwt.verify(authHeader, process.env.JWT_SECRET!);
     //TODO:
     //@ts-ignore
     if (decoded.userId) {

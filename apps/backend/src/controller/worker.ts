@@ -1,12 +1,23 @@
 import nacl from "tweetnacl";
-import { TOTAL_DECEMIALS, Worker_JWT_SECTET } from "..";
 import { prisma } from "../prisma.client/client";
 import { SubmitTaskSchema } from "../types/type";
 import asyncHandler from "../utils/async.handler";
 import jwt from "jsonwebtoken";
-import { PublicKey } from "@solana/web3.js";
+import {
+  PublicKey,
+  Connection,
+  Keypair,
+  SystemProgram,
+  Transaction,
+  sendAndConfirmTransaction,
+} from "@solana/web3.js";
+const bs58 = require("bs58").default;
 
+const lamports = 100000000;
 const TOTAL_SELECTION = 100;
+const connection = new Connection(
+  process.env.RCP_URl ?? "https://api.devnet.solana.com",
+);
 
 const WorkerSignin = asyncHandler(async (req, res) => {
   try {
@@ -37,32 +48,35 @@ const WorkerSignin = asyncHandler(async (req, res) => {
         {
           workerId: existingUser.id,
         },
-        Worker_JWT_SECTET,
+        process.env.Worker_JWT_SECTET as string,
       );
 
       res.status(200).json({
         token,
+        amount: existingUser.pending_amount / lamports,
       });
     } else {
       const newUser = await prisma.worker.create({
         data: {
           address: publicKey,
-          pending_amount: 0 * TOTAL_DECEMIALS,
-          locket_amount: 0 * TOTAL_DECEMIALS,
+          pending_amount: 0 * lamports,
+          locket_amount: 0 * lamports,
         },
       });
       const token = jwt.sign(
         {
           workerId: newUser.id,
         },
-        Worker_JWT_SECTET,
+        process.env.Worker_JWT_SECTET as string,
       );
 
       res.status(200).json({
         token,
+        amount: newUser.pending_amount / lamports,
       });
     }
   } catch (error) {
+    console.log("error", error);
     res.status(500).json({
       message: "Something is wrong with WorkerSignin Controller",
     });
@@ -238,10 +252,28 @@ const Payout = asyncHandler(async (req, res) => {
       });
     }
 
-    const address = worker?.address;
+    const address = worker!.address;
 
-    const txId = "kjf;alskjfd";
-
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: new PublicKey(process.env.PARENT_WALLET_ADDRESS as string),
+        toPubkey: new PublicKey(address),
+        lamports: lamports,
+      }),
+    );
+    const keypair = Keypair.fromSecretKey(bs58.decode(process.env.PRIVATE_KEY));
+    let signature = "";
+    try {
+      signature = await sendAndConfirmTransaction(connection, transaction, [
+        keypair,
+      ]);
+      //TODO: make a worker that polls the blockchain to make sure transfer is successfull and upate the database;
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({
+        message: "Transaction failed",
+      });
+    }
     await prisma.$transaction(async (tx) => {
       await tx.worker.update({
         where: {
@@ -259,7 +291,7 @@ const Payout = asyncHandler(async (req, res) => {
       await tx.payout.create({
         data: {
           workerId: workerId,
-          signature: txId,
+          signature: signature,
           amount: worker!.pending_amount,
           status: "Processing",
         },

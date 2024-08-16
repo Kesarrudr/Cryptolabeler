@@ -2,16 +2,14 @@ import express from "express";
 import cors from "cors";
 import Version1 from "./version/v1";
 
-export const JWT_SECRET = "howstrongheis";
-export const Worker_JWT_SECTET = "howgoodisthisandstrong";
-export const TOTAL_DECEMIALS = 1000_000;
+import "dotenv/config";
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
 
-const PORT = 6969;
+const PORT = process.env.PORT ?? 8000;
 
 app.use("/", Version1);
 
